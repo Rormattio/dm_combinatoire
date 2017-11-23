@@ -533,7 +533,7 @@ def verif_test():
         if not(verif_grammar(i)):
             return False
     return True
-    
+
 # vérification de count et list
 def count_test():
     for (i,mainKey) in Grams:
@@ -541,13 +541,13 @@ def count_test():
             if len(i[mainKey].list(j)) != i[mainKey].count(j):
                 return False
     return True
+
 # vérification de unrank
 def unrank_test():
     for (i,mainKey) in Grams:
         if i[mainKey].list(8) != [i[mainKey].unrank(8, j) for j in range(i[mainKey].count(8))]:
             return False
     return True
-
 
 def random_test():
     for (i,mainKey) in Grams:
