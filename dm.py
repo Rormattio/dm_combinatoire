@@ -11,7 +11,6 @@ class AbstractRule:
 
     def random(self, weight):
         r = randrange(self.count(weight))
-        #print("r = ", r, ", count = ", self.count(weight))
         return self.unrank(weight, r)
 
 class ConstantRule(AbstractRule):
@@ -196,9 +195,9 @@ class ProductRule(ConstructorRule):
         for i in range(self.fst().valuation(), wa):
             offset += self.fst().count(i) * self.snd().count(w - i)
         # Then we add the offset for second "level" of blocks...
-        offset += self.fst().count(wa) * self.fst().rank(a)
+        offset += self.fst().count(wb) * self.fst().rank(a)
         # Then the last offset.
-        offset += self.snd().count(wb) * self.fst().rank(b)
+        offset += self.snd().rank(b)
         return offset
 
 def calc_valuation(gram):
@@ -278,10 +277,10 @@ motGram = { "Vide" : EpsilonRule(""),
            "AtomB" : SingletonRule("B")
 }
 init_grammar(motGram)
-print(motGram["Mot"].weight("ABABABA"))
+print(motGram["Mot"].rank("ABABAA"))
 #print(calc_valuation(motGram))
 
-def get_rightP(obj):
+def before_rightP(obj):
     lc = 0
     rc = 0
     for i in obj:
@@ -289,15 +288,15 @@ def get_rightP(obj):
             lc += 1
         else:
             rc += 1
-        if rc > lc:
-            return obj[:lc+rc], obj[lc+rc:]
+        if rc == lc:
+            return obj[:lc+rc-1], obj[lc+rc-1:]
 # Grammaire des mots de Dyck
 dyckGram = {
     "Vide"  : EpsilonRule(""),
     "Dyck"  : UnionRule("Vide", "(D)D", vide),
-    "(D)D"  : ProductRule("Atom(", "D)D", lambda x, y: x + y, first),
-    "D)D"   : ProductRule("D)", "Dyck", lambda x, y: x + y, get_rightP),
-    "D)"    : ProductRule("Atom)", "Dyck", lambda x, y: y + x, last),
+    "(D)D"  : ProductRule("(D", ")D", lambda x, y: x + y, before_rightP),
+    "(D"   : ProductRule("Atom(", "Dyck", lambda x, y: x + y, first),
+    ")D"    : ProductRule("Atom)", "Dyck", lambda x, y: x + y, first),
     "Atom(" : SingletonRule("("),
     "Atom)" : SingletonRule(")")
 }     
@@ -345,8 +344,9 @@ dyckGram = {
 }
 """
 init_grammar(dyckGram)
-print(dyckGram["Dyck"].weight("(()()(()()))"))
-print(dyckGram["Dyck"].count(8))
+print("totooooo")
+print(dyckGram["Dyck"].weight("()((()))"))
+print(dyckGram["Dyck"].rank("()((()))"))
 #print(calc_valuation(dyckGram))
 
 def unique(obj, f):
@@ -479,8 +479,10 @@ treeGram = {
     "Node" : ProductRule("Tree", "Tree", lambda x, y: (x,y), lambda x: x ),
     "Tree" : UnionRule("Leaf", "Node", lambda x: x==())
 }
+
 init_grammar(treeGram)
 print(treeGram["Tree"].weight((((),()),())))
+
 """
 print(calc_valuation(treeGram))
 print(treeGram["Tree"].count(3))
@@ -491,9 +493,7 @@ print(treeGram["Tree"].random(3))"""
 ###########################################
 ##  Tests sur les grammaires
 ###########################################
-Grams = [(fiboGram,"Fib"), (treeGram,"Tree"), (motGram,"Mot"), \
-         (non_tripleGram,"Non_Triple")
-         , (dyckGram, "Dyck"), (palindromeGram, "Pal"), (palindrome2Gram, "Pal")]
+Grams = [(fiboGram,"Fib"), (motGram,"Mot"), (non_tripleGram,"Non_Triple") , (palindromeGram, "Pal"), (palindrome2Gram, "Pal"), (dyckGram, "Dyck"), (treeGram,"Tree")]
 
 
 
@@ -527,22 +527,38 @@ def random_test():
                 return False
     return True
 
+def rank_test():
+    for (i, mainKey) in Grams:
+        l = i[mainKey].list(8)
+        r = [i[mainKey].rank(j) for j in l]
+        if r != [k for k in range(len(l))]:
+            print(l)
+            print(mainKey)
+            print(r)
+            return False
+    return True
+
+
 def all_tests():
     if verif_test():
         print("grammar verification test passed")
     else:
-        print("Grammar verification test didn't passed")
+        print("Grammar verification test didn't pass")
     if count_test():
         print("Count and list test passed")
     else:
-        print("Count and list test didn't passed")
+        print("Count and list test didn't pass")
     if unrank_test():
         print("Unrank test passed")
     else:
-        print("Unrank test didn't passed")
+        print("Unrank test didn't pass")
     if random_test():
         print("Random test passed")
     else:
         print("Random test didn't pass")
+    if rank_test():
+        print("Rank test passed")
+    else:
+        print("Rank test didn't pass")
 
 all_tests()
