@@ -248,6 +248,9 @@ def begins_with(obj, f):
 
 def first(obj):
     return obj[0], obj[1:]
+    
+def last(obj):
+    return obj[-1], obj[:-1]
 
 # Grammaire sur les mots de Fibonacci
 fiboGram = { "Vide"   : EpsilonRule(""),
@@ -278,7 +281,27 @@ init_grammar(motGram)
 print(motGram["Mot"].weight("ABABABA"))
 #print(calc_valuation(motGram))
 
+def get_rightP(obj):
+    lc = 0
+    rc = 0
+    for i in obj:
+        if i=='(':
+            lc += 1
+        else:
+            rc += 1
+        if rc > lc:
+            return obj[:lc+rc], obj[lc+rc:]
 # Grammaire des mots de Dyck
+dyckGram = {
+    "Vide"  : EpsilonRule(""),
+    "Dyck"  : UnionRule("Vide", "(D)D", vide),
+    "(D)D"  : ProductRule("Atom(", "D)D", lambda x, y: x + y, first),
+    "D)D"   : ProductRule("D)", "Dyck", lambda x, y: x + y, get_rightP),
+    "D)"    : ProductRule("Atom)", "Dyck", lambda x, y: y + x, last),
+    "Atom(" : SingletonRule("("),
+    "Atom)" : SingletonRule(")")
+}     
+
 """
 dyckGram = {
     "Vide"  : EpsilonRule(""),
@@ -321,8 +344,9 @@ dyckGram = {
     "LL)" : ProductRule("L", "L)", lambda x, y: x + y)
 }
 """
-
-#init_grammar(dyckGram)
+init_grammar(dyckGram)
+print(dyckGram["Dyck"].weight("(()()(()()))"))
+print(dyckGram["Dyck"].count(8))
 #print(calc_valuation(dyckGram))
 
 def unique(obj, f):
@@ -355,8 +379,7 @@ init_grammar(non_tripleGram)
 print(non_tripleGram["Non_Triple"].weight("ABABABA"))
 #print(calc_valuation(non_tripleGram))
 
-def last(obj):
-    return obj[-1], obj[:-1]
+
 
 def XuX(obj, X):
     l = len(obj)
@@ -386,20 +409,21 @@ print(palindromeGram["Pal"].weight("BAB"))
 # Grammaire des palindromes sur A, B et C
 palindrome2Gram = {
     "Vide"   : EpsilonRule(""),
-    "Pal"    : UnionRule("Vide", "Cas1"),
-    "Cas1"   : UnionRule("AuA", "Cas2"),
-    "Cas2"   : UnionRule("BuB", "Cas3"),
-    "Cas3"   : UnionRule("AtomA", "Cas4"),
-    "Cas4"   : UnionRule("AtomB", "AtomC"),
-    "AuA"    : ProductRule("AtomA", "uA", lambda x, y: x + y ),
+    "Pal"    : UnionRule("Vide", "Cas1", vide),
+    "Cas1"   : UnionRule("AuA", "Cas2", lambda x: XuX(x, 'A')),
+    "Cas2"   : UnionRule("BuB", "Cas3", lambda x: XuX(x, 'B')),
+    "Cas3"   : UnionRule("CuC", "Cas4", lambda x: XuX(x, 'C')),
+    "Cas4"   : UnionRule("AtomA", "Cas5", lambda x: begins_with(x, 'A')),
+    "Cas5"   : UnionRule("AtomB", "AtomC", lambda x: begins_with(x, 'B')),
+    "AuA"    : ProductRule("AtomA", "uA", lambda x, y: x + y, first ),
     "AtomA"  : SingletonRule("A"),
-    "uA"     : ProductRule("AtomA", "Pal", lambda x, y: y + x ),
-    "BuB"    : ProductRule("AtomB", "uB", lambda x, y:  x + y ),
+    "uA"     : ProductRule("AtomA", "Pal", lambda x, y: y + x , last),
+    "BuB"    : ProductRule("AtomB", "uB", lambda x, y:  x + y , first),
     "AtomB"  : SingletonRule("B"),
-    "uB"     : ProductRule("AtomB", "Pal", lambda x, y:  y + x ),
-    "CuC"    : ProductRule("AtomC", "uC", lambda x, y:  x + y ),
+    "uB"     : ProductRule("AtomB", "Pal", lambda x, y:  y + x , last),
+    "CuC"    : ProductRule("AtomC", "uC", lambda x, y:  x + y , first),
     "AtomC"  : SingletonRule("C"),
-    "uC"     : ProductRule("AtomC", "Pal", lambda x, y:  y + x )
+    "uC"     : ProductRule("AtomC", "Pal", lambda x, y:  y + x , last)
 }
 
 init_grammar(palindrome2Gram)
@@ -429,7 +453,7 @@ lettreGram = {
     "uB"       : ProductRule("Lettres", "AtomB", lambda x, y: x + y )
 }
 """
-
+"""
 lettreGram = {
 	"Vide"    : EpsilonRule(""),
 	"AtomA"   : SingletonRule("A"),
@@ -447,15 +471,16 @@ lettreGram = {
 }
 
 init_grammar(lettreGram)
+"""
 #print(calc_valuation(lettreGram))
 
 treeGram = {
-    "Leaf" : SingletonRule("Leaf"),
-    "Node" : ProductRule("Tree", "Tree", lambda x, y: "Node(" + x + "," + y + ")"),
-    "Tree" : UnionRule("Leaf", "Node")
+    "Leaf" : SingletonRule(()),
+    "Node" : ProductRule("Tree", "Tree", lambda x, y: (x,y), lambda x: x ),
+    "Tree" : UnionRule("Leaf", "Node", lambda x: x==())
 }
 init_grammar(treeGram)
-
+print(treeGram["Tree"].weight((((),()),())))
 """
 print(calc_valuation(treeGram))
 print(treeGram["Tree"].count(3))
@@ -520,4 +545,4 @@ def all_tests():
     else:
         print("Random test didn't pass")
 
-#all_tests()
+all_tests()
