@@ -231,6 +231,40 @@ class ProductRule(ConstructorRule):
             self._dict_rank[obj] = offset
         return self._dict_rank[obj]
 
+class BoundRule(AbstractRule):
+
+    def __init__(self, gram, minimum, maximum):
+        self._gram = gram
+        self._min = minimum
+        self._max = maximum
+
+    def gram(self):
+        return self._grammar[self._gram]
+
+    def valuation(self):
+        return max(self._min, self.gram().valuation())
+
+    def count(self, weight):
+        if not (weight >= self._min and weight <= self._max):
+            raise ValueError("weight is not within bounds")
+        return self.gram().count(weight)
+
+    def unrank(self, weight, rank):
+        if not (weight >= self._min and weight <= self._max):
+            raise ValueError("weight is not within bounds")
+        return self.gram().unrank(weight, rank)
+
+    def rank(self, obj):
+        return self.gram().rank(obj)
+
+    def list(self, weight):
+        if not (weight >= self._min and weight <= self._max):
+            raise ValueError("weight is not within bounds")
+        return self.gram().list(weight)
+
+    def weight(self, obj):
+        return self.gram().weight(obj)
+
 def calc_valuation(gram):
     previous = {}
     fixpoint = False
@@ -374,7 +408,6 @@ dyckGram = {
 }
 """
 init_grammar(dyckGram)
-print("totooooo")
 print(dyckGram["Dyck"].weight("()((()))"))
 print(dyckGram["Dyck"].rank("()((()))"))
 #print(calc_valuation(dyckGram))
@@ -507,7 +540,9 @@ init_grammar(lettreGram)
 treeGram = {
     "Leaf" : SingletonRule(()),
     "Node" : ProductRule("Tree", "Tree", lambda x, y: (x,y), lambda x: x ),
-    "Tree" : UnionRule("Leaf", "Node", lambda x: x==())
+    "Tree" : UnionRule("Leaf", "Node", lambda x: x==()),
+    "BoundTree" : BoundRule("Tree", 2, 5),
+    "Test" : ProductRule("Tree", "BoundTree", lambda x, y: (x,y), lambda x: x)
 }
 
 init_grammar(treeGram)
@@ -525,7 +560,9 @@ print(treeGram["Tree"].random(3))"""
 ###########################################
 Grams = [(fiboGram,"Fib"), (motGram,"Mot"), (non_tripleGram,"Non_Triple") , (palindromeGram, "Pal"), (palindrome2Gram, "Pal"), (dyckGram, "Dyck"), (treeGram,"Tree")]
 
-
+print("totooooo")
+g = treeGram["Test"]
+print(g.unrank(4, 1))
 
 #vérification des grammaire
 def verif_test():
