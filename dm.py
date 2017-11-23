@@ -325,6 +325,11 @@ def first(obj):
 def last(obj):
     return obj[-1], obj[:-1]
 
+# String concatenation function taking two arguments (unlike "".join, which
+# takes a sequence
+def conc(s1, s2):
+    return s1 + s2
+
 # Grammaire sur les mots de Fibonacci
 fiboGram = { "Vide"   : EpsilonRule(""),
              "Fib"    : UnionRule("Vide", "Cas1", vide),
@@ -332,20 +337,18 @@ fiboGram = { "Vide"   : EpsilonRule(""),
              "Cas2"   : UnionRule("AtomB", "CasBAu", lambda x: x=='B'),
              "AtomA"  : SingletonRule("A"),
              "AtomB"  : SingletonRule("B"),
-             "CasAu"  : ProductRule("AtomA", "Fib", lambda x, y: x + y, first),
-             "CasBAu" : ProductRule("AtomB", "CasAu", lambda x, y: x + y, first)
+             "CasAu"  : ProductRule("AtomA", "Fib", conc, first),
+             "CasBAu" : ProductRule("AtomB", "CasAu", conc, first)
            }
 init_grammar(fiboGram)
 print(fiboGram["Fib"].weight("ABABABA"))
 #print(calc_valuation(fiboGram))
 
-
-
 # Grammaire des mots sur l'alphabet (A,B)
 motGram = { "Vide" : EpsilonRule(""),
            "Mot"   : UnionRule("Vide", "Cas1", vide),
            "Cas1"  : UnionRule("Au", "Bu", lambda x: begins_with(x, 'A')),
-           "Au"    : ProductRule("AtomA", "Mot", lambda x, y: x + y , first),
+           "Au"    : ProductRule("AtomA", "Mot", conc , first),
            "Bu"    : ProductRule("AtomB", "Mot", lambda x, y:  x + y , first),
            "AtomA" : SingletonRule("A"),
            "AtomB" : SingletonRule("B")
@@ -368,9 +371,9 @@ def before_rightP(obj):
 dyckGram = {
     "Vide"  : EpsilonRule(""),
     "Dyck"  : UnionRule("Vide", "(D)D", vide),
-    "(D)D"  : ProductRule("(D", ")D", lambda x, y: x + y, before_rightP),
-    "(D"   : ProductRule("Atom(", "Dyck", lambda x, y: x + y, first),
-    ")D"    : ProductRule("Atom)", "Dyck", lambda x, y: x + y, first),
+    "(D)D"  : ProductRule("(D", ")D", conc, before_rightP),
+    "(D"   : ProductRule("Atom(", "Dyck", conc, first),
+    ")D"    : ProductRule("Atom)", "Dyck", conc, first),
     "Atom(" : SingletonRule("("),
     "Atom)" : SingletonRule(")")
 }     
@@ -380,24 +383,24 @@ dyckGram = {
     "Vide"  : EpsilonRule(""),
     "Dyck"  : UnionRule("Vide", "Cas1"),
     "Cas1"  : UnionRule("(u)", "uv"),
-    "(u)"   : ProductRule("Atom(", "Cas2", lambda x, y: x + y ),
-    "Cas2"  : ProductRule("Dyck", "Atom)", lambda x, y: x + y ),
+    "(u)"   : ProductRule("Atom(", "Cas2", conc ),
+    "Cas2"  : ProductRule("Dyck", "Atom)", conc ),
     "Atom(" : SingletonRule("("),
     "Atom)" : SingletonRule(")"),
-    "uv"    : ProductRule("Cas1", "Cas1", lambda x, y: x + y ),
+    "uv"    : ProductRule("Cas1", "Cas1", conc ),
 }
 """
 """
 dyckGram = {
     "Vide"    : EpsilonRule(""),
     "Dyck"    : UnionRule("Vide", "dp-d", vide),
-    "dp-d"    : ProductRule("DyckPrm", "Dyck", lambda x, y: x + y ),
+    "dp-d"    : ProductRule("DyckPrm", "Dyck", conc ),
     "DyckPrm" : UnionRule("(dp)", "()"),
-    "()"      : ProductRule("Atom(", "Atom)", lambda x, y: x + y ),
+    "()"      : ProductRule("Atom(", "Atom)", conc ),
     "Atom("   : SingletonRule("("),
     "Atom)"   : SingletonRule(")"),
-    "(dp)"    : ProductRule("Atom(", "dp)", lambda x, y: x + y ),
-    "dp)"     : ProductRule("DyckPrm", "Atom)", lambda x, y: x + y )
+    "(dp)"    : ProductRule("Atom(", "dp)", conc ),
+    "dp)"     : ProductRule("DyckPrm", "Atom)", conc )
 }
 """
 """
@@ -407,14 +410,14 @@ dyckGram = {
     "Atom)" : SingletonRule(")"),
     "Dyck" : UnionRule("Vide", "Cas1"),
     "Cas1" : UnionRule("(R", "L)"),
-    "(R"   : ProductRule("Atom(", "R", lambda x, y: x + y),
+    "(R"   : ProductRule("Atom(", "R", conc),
     "R"    : UnionRule("Dyck)", "(RR"),
     "L"    : UnionRule("(Dyck", "LL)"),
-    "Dyck)" : ProductRule("Dyck", "Atom)", lambda x, y: x + y),
-    "(Dyck" : ProductRule("Atom(", "Dyck", lambda x, y: x + y),
-    "L)"   : ProductRule("L", "Atom)", lambda x, y: x + y),
-    "(RR" : ProductRule("(R", "R", lambda x, y: x + y),
-    "LL)" : ProductRule("L", "L)", lambda x, y: x + y)
+    "Dyck)" : ProductRule("Dyck", "Atom)", conc),
+    "(Dyck" : ProductRule("Atom(", "Dyck", conc),
+    "L)"   : ProductRule("L", "Atom)", conc),
+    "(RR" : ProductRule("(R", "R", conc),
+    "LL)" : ProductRule("L", "L)", conc)
 }
 """
 init_grammar(dyckGram)
@@ -438,8 +441,8 @@ non_tripleGram = {
     "Cas1"   : UnionRule("CasA", "CasB", lambda x: begins_with(x, 'A')),
     "AtomA"  : SingletonRule("A"),
     "AtomB"  : SingletonRule("B"),
-    "Au"     : ProductRule("AtomA", "restB", lambda x, y: x + y, first),
-    "AAu"    : ProductRule("AtomA", "Au", lambda x, y: x + y , first),
+    "Au"     : ProductRule("AtomA", "restB", conc, first),
+    "AAu"    : ProductRule("AtomA", "Au", conc , first),
     "restB"  : UnionRule("Vide", "CasB", vide),
     "CasB"   : UnionRule("Bu", "BBu", lambda x: unique(x, 'B')),
     "Bu"     : ProductRule("AtomB", "restA", lambda x, y:  x + y , first),
@@ -488,7 +491,7 @@ palindrome2Gram = {
     "Cas3"   : UnionRule("CuC", "Cas4", lambda x: XuX(x, 'C')),
     "Cas4"   : UnionRule("AtomA", "Cas5", lambda x: begins_with(x, 'A')),
     "Cas5"   : UnionRule("AtomB", "AtomC", lambda x: begins_with(x, 'B')),
-    "AuA"    : ProductRule("AtomA", "uA", lambda x, y: x + y, first ),
+    "AuA"    : ProductRule("AtomA", "uA", conc, first ),
     "AtomA"  : SingletonRule("A"),
     "uA"     : ProductRule("AtomA", "Pal", lambda x, y: y + x , last),
     "BuB"    : ProductRule("AtomB", "uB", lambda x, y:  x + y , first),
@@ -514,38 +517,38 @@ lettreGram = {
     "Cas3"     : UnionRule("AuB", "BuA"),
 #    "Cas4"     : UnionRule("BuA", "Cas5"),
 #    "Cas5"     : UnionRule("uAB", "uBA"),
-    "ABu"      : ProductRule("AtomA", "Bu", lambda x, y: x + y ),
-    "Bu"       : ProductRule("AtomB", "Lettres", lambda x, y: x + y),
-    "BAu"      : ProductRule("AtomB", "Au", lambda x, y: x + y),
-    "Au"       : ProductRule("AtomA", "Lettres", lambda x, y: x + y),
-    "AuB"      : ProductRule("Au", "AtomB", lambda x, y: x + y),
-    "BuA"      : ProductRule("Bu", "AtomA", lambda x, y: x + y),
-#    "uAB"      : ProductRule("uA", "AtomB", lambda x, y: x + y),
-    "uA"       : ProductRule("Lettres", "AtomA", lambda x, y: x + y ),
- #   "uBA"      : ProductRule("uB", "AtomA", lambda x, y: x + y ),
-    "uB"       : ProductRule("Lettres", "AtomB", lambda x, y: x + y )
+    "ABu"      : ProductRule("AtomA", "Bu", conc ),
+    "Bu"       : ProductRule("AtomB", "Lettres", conc),
+    "BAu"      : ProductRule("AtomB", "Au", conc),
+    "Au"       : ProductRule("AtomA", "Lettres", conc),
+    "AuB"      : ProductRule("Au", "AtomB", conc),
+    "BuA"      : ProductRule("Bu", "AtomA", conc),
+#    "uAB"      : ProductRule("uA", "AtomB", conc),
+    "uA"       : ProductRule("Lettres", "AtomA", conc ),
+ #   "uBA"      : ProductRule("uB", "AtomA", conc ),
+    "uB"       : ProductRule("Lettres", "AtomB", conc )
 }
-"""
 """
 lettreGram = {
 	"Vide"    : EpsilonRule(""),
 	"AtomA"   : SingletonRule("A"),
 	"AtomB"   : SingletonRule("B"),
-	"Lettres" : UnionRule("Vide", "Cas1"),
-	"Cas1"    : UnionRule("Ab", "Ba"),
-	"Ab"      : ProductRule("AtomA", "b", lambda x, y: x + y ),
-	"Ba"      : ProductRule("AtomB", "a", lambda x, y: x + y ),
-	"a"       : UnionRule("Au", "Baa"),
-	"Au"      : ProductRule("AtomA", "Lettres", lambda x, y: x + y ),
-	"Baa"     : ProductRule("Ba", "a", lambda x, y: x + y ),
-	"b"       : ProductRule("Bu", "Abb", lambda x, y: x + y ),
-	"Bu"      : ProductRule("AtomB", "Lettres", lambda x, y: x + y ),
-	"Abb"     : ProductRule("Ab", "b", lambda x, y: x + y )
+	"Lettres" : UnionRule("Vide", "Cas1", vide),
+        "Cas1"    : UnionRule("Ab", "Ba", lambda x: begins_with(x, 'A')),
+	"Ab"      : ProductRule("AtomA", "b", conc, first),
+	"Ba"      : ProductRule("AtomB", "a", conc, first),
+        "a"       : UnionRule("Au", "Baa", lambda x: begins_with(x, 'A')),
+	"Au"      : ProductRule("AtomA", "Lettres", conc, first),
+	"Baa"     : ProductRule("Ba", "a", conc, None),
+        "b"       : UnionRule("Bu", "Abb", conc),
+	"Bu"      : ProductRule("AtomB", "Lettres", conc , first),
+	"Abb"     : ProductRule("Ab", "b", conc, None)
 }
-
 init_grammar(lettreGram)
-"""
 #print(calc_valuation(lettreGram))
+print("totooooo")
+l = lettreGram["Lettres"]
+print(l.count(6))
 
 treeGram = {
     "Leaf" : SingletonRule(()),
@@ -557,7 +560,6 @@ treeGram = {
 
 init_grammar(treeGram)
 print(treeGram["Tree"].weight((((),()),())))
-print("totooooo")
 g = treeGram["Test"]
 print(g.unrank(12, 2))
 
