@@ -24,7 +24,7 @@ class ConstantRule(AbstractRule):
 
     def rank(self, obj):
         return 0
-    
+
 class EpsilonRule(ConstantRule):
 
     def __init__(self, obj):
@@ -77,6 +77,11 @@ class ConstructorRule(AbstractRule):
 
     def __init__(self):
         self._valuation = float("inf")
+        self._dict_count = {}
+        self._dict_list = {}
+        self._dict_unrank = {}
+        self._dict_weight = {}
+        self._dict_rank = {}
 
     def valuation(self):
         return self._valuation
@@ -87,9 +92,9 @@ class ConstructorRule(AbstractRule):
 class UnionRule(ConstructorRule):
 
     def __init__(self, fst, snd, org):
+        super().__init__()
         self._fst = fst
         self._snd = snd
-        self._valuation = float("inf")
         self._origin = org
 
     def fst_name(self):
@@ -105,38 +110,52 @@ class UnionRule(ConstructorRule):
         self._valuation = min(self.fst().valuation(), self.snd().valuation())
 
     def count(self, weight):
-        return self.fst().count(weight) + self.snd().count(weight)
+        if weight not in self._dict_count:
+            self._dict_count[weight] = \
+                    self.fst().count(weight) + self.snd().count(weight)
+        return self._dict_count[weight]
 
     def list(self, weight):
-        return self.fst().list(weight) + self.snd().list(weight)
+        if weight not in self._dict_list:
+            self._dict_list[weight] = \
+                    self.fst().list(weight) + self.snd().list(weight)
+        return self._dict_list[weight]
 
     def unrank(self, weight, rank):
-        if rank < 0 or rank >= self.count(weight):
-            raise ValueError("rank out of bounds")
-        elif rank < self.fst().count(weight):
-            return self.fst().unrank(weight, rank)
-        else:
-            return self.snd().unrank(weight, rank - self.fst().count(weight))
-    
+        if (weight,rank) not in self._dict_rank:
+            if rank < 0 or rank >= self.count(weight):
+                raise ValueError("rank out of bounds")
+            elif rank < self.fst().count(weight):
+                self._dict_unrank[(weight,rank)] = self.fst().unrank(weight, rank)
+            else:
+                self._dict_unrank[(weight,rank)] = \
+                    self.snd().unrank(weight, rank - self.fst().count(weight))
+        return self._dict_unrank[(weight,rank)]
+
     def weight(self, obj):
-        if self._origin(obj):
-            return self.fst().weight(obj)
-        else:
-            return self.snd().weight(obj)
+        if obj not in self._dict_weight:
+            if self._origin(obj):
+                self._dict_weight[obj] = self.fst().weight(obj)
+            else:
+                self._dict_weight[obj] = self.snd().weight(obj)
+        return self._dict_weight[obj]
 
     def rank(self, obj):
-        if self._origin(obj):
-            return self.fst().rank(obj)
-        else:
-            return self.fst().count(self.weight(obj)) + self.snd().rank(obj)
+        if obj not in self._dict_rank:
+            if self._origin(obj):
+                self._dict_rank[obj] = self.fst().rank(obj)
+            else:
+                self._dict_rank[obj] = \
+                        self.fst().count(self.weight(obj)) + self.snd().rank(obj)
+        return self._dict_rank[obj]
 
 class ProductRule(ConstructorRule):
 
     def __init__(self, fst, snd, cons, dec):
+        super().__init__()
         self._fst = fst
         self._snd = snd
         self._constructor = cons
-        self._valuation = float("inf")
         self._deconstr = dec
 
     def fst_name(self):
@@ -152,53 +171,65 @@ class ProductRule(ConstructorRule):
         self._valuation = self.fst().valuation() + self.snd().valuation()
 
     def count(self, weight):
-        s = 0
-        for k in range(self.fst().valuation(), weight - self.snd().valuation() + 1):
-            s = s + self.fst().count(k) * self.snd().count(weight - k)
-        return s
+        if weight not in self._dict_count:
+            s = 0
+            for k in range(self.fst().valuation(), weight - self.snd().valuation() + 1):
+                s = s + self.fst().count(k) * self.snd().count(weight - k)
+            self._dict_count[weight] = s
+        return self._dict_count[weight]
 
     def list(self, weight):
-        ret = []
-        for k in range(self.fst().valuation(), weight - self.snd().valuation() + 1):
-            for fst_obj in self.fst().list(k):
-                for snd_obj in self.snd().list(weight - k):
-                    ret = ret + [self._constructor(fst_obj, snd_obj)]
-        return ret
+        if weight not in self._dict_list:
+            ret = []
+            for k in range(self.fst().valuation(), weight-self.snd().valuation() + 1):
+                for fst_obj in self.fst().list(k):
+                    for snd_obj in self.snd().list(weight - k):
+                        ret = ret + [self._constructor(fst_obj, snd_obj)]
+            self._dict_list[weight] = ret
+        return self._dict_list[weight]
 
     def unrank(self, weight, rank):
-        i = 0
-        prev_cur_bound = 0
-        cur_bound = self.fst().count(i)
-        while rank >= cur_bound and i <= weight:
-            i = i + 1
-            prev_cur_bound = cur_bound # Save value of cur_bound to compute j.
-            cur_bound = cur_bound + self.fst().count(i) * self.snd().count(weight - i)
-        if rank >= cur_bound:
-            raise ValueError("rank out of bounds")
-        j = rank - prev_cur_bound
-        l = self.snd().count(weight - i)
-        return self._constructor(self.fst().unrank(i, int(j / l)), self.snd().unrank(weight - i, j % l))
+        if (weight,rank) not in self._dict_rank:
+            i = 0
+            prev_cur_bound = 0
+            cur_bound = self.fst().count(i)
+            while rank >= cur_bound and i <= weight:
+                i = i + 1
+                prev_cur_bound = cur_bound # Save value of cur_bound to compute j.
+                cur_bound = cur_bound + self.fst().count(i) * self.snd().count(weight - i)
+            if rank >= cur_bound:
+                raise ValueError("rank out of bounds")
+            j = rank - prev_cur_bound
+            l = self.snd().count(weight - i)
+            self._dict_unrank[(weight,rank)] = \
+                    self._constructor(self.fst().unrank(i, int(j / l)), \
+                        self.snd().unrank(weight - i, j % l))
+        return self._dict_unrank[(weight,rank)]
         
     def weight(self, obj):
-        obj1 , obj2 = self._deconstr(obj)
-        return self.fst().weight(obj1) + self.snd().weight(obj2) 
+        if obj not in self._dict_weight:
+            obj1 , obj2 = self._deconstr(obj)
+            self._dict_weight[obj] = self.fst().weight(obj1) + self.snd().weight(obj2) 
+        return self._dict_weight[obj]
 
     def rank(self, obj):
-        (a,b) = self._deconstr(obj)
-        # First, the weight of the first component enables us to calculate the
-        # offset of the "block" we are in. We calculate this offset using a
-        # loop.
-        w = self.weight(obj)
-        wa = self.fst().weight(a)
-        wb = w - wa
-        offset = 0
-        for i in range(self.fst().valuation(), wa):
-            offset += self.fst().count(i) * self.snd().count(w - i)
-        # Then we add the offset for second "level" of blocks...
-        offset += self.fst().count(wb) * self.fst().rank(a)
-        # Then the last offset.
-        offset += self.snd().rank(b)
-        return offset
+        if obj not in self._dict_rank:
+            (a,b) = self._deconstr(obj)
+            # First, the weight of the first component enables us to calculate the
+            # offset of the "block" we are in. We calculate this offset using a
+            # loop.
+            w = self.weight(obj)
+            wa = self.fst().weight(a)
+            wb = w - wa
+            offset = 0
+            for i in range(self.fst().valuation(), wa):
+                offset += self.fst().count(i) * self.snd().count(w - i)
+            # Then we add the offset for second "level" of blocks...
+            offset += self.fst().count(wb) * self.fst().rank(a)
+            # Then the last offset.
+            offset += self.snd().rank(b)
+            self._dict_rank[obj] = offset
+        return self._dict_rank[obj]
 
 def calc_valuation(gram):
     previous = {}
@@ -221,7 +252,6 @@ def init_grammar(gram):
     # Compute valuations to verify grammars
     if float("inf") in calc_valuation(gram).items():
         raise ValueError("Grammaire invalide")
-
 
 def verif_grammar(gram):
     for _, rule_object in gram.items():
