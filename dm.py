@@ -253,7 +253,7 @@ class BoundRule(AbstractRule):
 
     def count(self, weight):
         if not (weight >= self._min and weight <= self._max):
-            raise ValueError("weight is not within bounds")
+            return 0
         return self.gram().count(weight)
 
     def unrank(self, weight, rank):
@@ -266,11 +266,14 @@ class BoundRule(AbstractRule):
 
     def list(self, weight):
         if not (weight >= self._min and weight <= self._max):
-            raise ValueError("weight is not within bounds")
+            return []
         return self.gram().list(weight)
 
     def weight(self, obj):
-        return self.gram().weight(obj)
+        w = self.gram().weight(obj)
+        if not (w >= self._min and w <= self._max):
+            raise ValueError("weight is not within bounds")
+        return w
 
 def calc_valuation(gram):
     previous = {}
@@ -548,12 +551,15 @@ treeGram = {
     "Leaf" : SingletonRule(()),
     "Node" : ProductRule("Tree", "Tree", lambda x, y: (x,y), lambda x: x ),
     "Tree" : UnionRule("Leaf", "Node", lambda x: x==()),
-    "BoundTree" : BoundRule("Tree", 2, 5),
-    "Test" : ProductRule("BoundTree", "Tree", lambda x, y: (x,y), lambda x: x)
+    "BoundTree" : BoundRule("Tree", 2, 9),
+    "Test" : ProductRule("Tree", "BoundTree", lambda x, y: (x,y), lambda x: x)
 }
 
 init_grammar(treeGram)
 print(treeGram["Tree"].weight((((),()),())))
+print("totooooo")
+g = treeGram["Test"]
+print(g.unrank(12, 2))
 
 """
 print(calc_valuation(treeGram))
@@ -566,10 +572,6 @@ print(treeGram["Tree"].random(3))"""
 ##  Tests sur les grammaires
 ###########################################
 Grams = [(fiboGram,"Fib"), (motGram,"Mot"), (non_tripleGram,"Non_Triple") , (palindromeGram, "Pal"), (palindrome2Gram, "Pal"), (dyckGram, "Dyck"), (treeGram,"Tree")]
-
-print("totooooo")
-g = treeGram["Test"]
-print(g.unrank(4, 1))
 
 #vérification des grammaire
 def verif_test():
