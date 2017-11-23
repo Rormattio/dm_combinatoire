@@ -22,6 +22,9 @@ class ConstantRule(AbstractRule):
         elif weight != self.valuation():
             raise ValueError("rank greater than count()", weight, self.valuation())
         return self._object
+
+    def rank(self, obj):
+        return 0
     
 class EpsilonRule(ConstantRule):
 
@@ -122,6 +125,12 @@ class UnionRule(ConstructorRule):
         else:
             return self.snd().weight(obj)
 
+    def rank(self, obj):
+        if self._origin(obj):
+            return self.fst().rank(obj)
+        else:
+            return self.fst().count(self.weight(obj)) + self.snd().rank(obj)
+
 class ProductRule(ConstructorRule):
 
     def __init__(self, fst, snd, cons, dec):
@@ -174,6 +183,23 @@ class ProductRule(ConstructorRule):
     def weight(self, obj):
         obj1 , obj2 = self._deconstr(obj)
         return self.fst().weight(obj1) + self.snd().weight(obj2) 
+
+    def rank(self, obj):
+        (a,b) = self._deconstr(obj)
+        # First, the weight of the first component enables us to calculate the
+        # offset of the "block" we are in. We calculate this offset using a
+        # loop.
+        w = self.weight(obj)
+        wa = self.fst().weight(a)
+        wb = w - wa
+        offset = 0
+        for i in range(self.fst().valuation(), wa):
+            offset += self.fst().count(i) * self.snd().count(w - i)
+        # Then we add the offset for second "level" of blocks...
+        offset += self.fst().count(wa) * self.fst().rank(a)
+        # Then the last offset.
+        offset += self.snd().count(wb) * self.fst().rank(b)
+        return offset
 
 def calc_valuation(gram):
     previous = {}
