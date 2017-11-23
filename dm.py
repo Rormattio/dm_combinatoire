@@ -190,20 +190,27 @@ class ProductRule(ConstructorRule):
 
     def unrank(self, weight, rank):
         if (weight,rank) not in self._dict_rank:
-            i = 0
-            prev_cur_bound = 0
-            cur_bound = self.fst().count(i)
-            while rank >= cur_bound and i <= weight:
-                i = i + 1
-                prev_cur_bound = cur_bound # Save value of cur_bound to compute j.
-                cur_bound = cur_bound + self.fst().count(i) * self.snd().count(weight - i)
-            if rank >= cur_bound:
-                raise ValueError("rank out of bounds")
-            j = rank - prev_cur_bound
-            l = self.snd().count(weight - i)
+            offset = 0
+            begin_cur_block = 0 # Smallest rank in current block
+            end_cur_block = 0 # Biggest rank in current block, plus one
+            size_fst = None
+            for i in range(self.fst().valuation(), weight - self.snd().valuation() + 1):
+                begin_cur_block = end_cur_block
+                end_cur_block = begin_cur_block + \
+                        self.fst().count(i) * self.snd().count(weight - i)
+                if rank < end_cur_block:
+                    size_fst = i
+                    break
+            if not (rank < end_cur_block):
+                raise ValueError("rank greater than number of objects in product")
+            size_snd = weight - size_fst
+            rel_rank = rank - begin_cur_block
+            l = self.snd().count(size_snd) # Size of sub-blocks
             self._dict_unrank[(weight,rank)] = \
-                    self._constructor(self.fst().unrank(i, int(j / l)), \
-                        self.snd().unrank(weight - i, j % l))
+                self._constructor( \
+                    self.fst().unrank(size_fst, int(rel_rank / l)), \
+                    self.snd().unrank(size_snd, rel_rank % l)
+                )
         return self._dict_unrank[(weight,rank)]
         
     def weight(self, obj):
@@ -542,7 +549,7 @@ treeGram = {
     "Node" : ProductRule("Tree", "Tree", lambda x, y: (x,y), lambda x: x ),
     "Tree" : UnionRule("Leaf", "Node", lambda x: x==()),
     "BoundTree" : BoundRule("Tree", 2, 5),
-    "Test" : ProductRule("Tree", "BoundTree", lambda x, y: (x,y), lambda x: x)
+    "Test" : ProductRule("BoundTree", "Tree", lambda x, y: (x,y), lambda x: x)
 }
 
 init_grammar(treeGram)
