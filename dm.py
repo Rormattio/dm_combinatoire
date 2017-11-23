@@ -176,8 +176,8 @@ class ProductRule(ConstructorRule):
         if rank >= cur_bound:
             raise ValueError("rank out of bounds")
         j = rank - prev_cur_bound
-        k = self.fst().count(i)
-        return self._constructor(self.fst().unrank(i, j % k), self.snd().unrank(weight - i, int(j / k)))
+        l = self.snd().count(weight - i)
+        return self._constructor(self.fst().unrank(i, int(j / l)), self.snd().unrank(weight - i, j % l))
         
     def weight(self, obj):
         obj1 , obj2 = self._deconstr(obj)
@@ -514,7 +514,7 @@ def count_test():
 # vérification de unrank
 def unrank_test():
     for (i,mainKey) in Grams:
-        if i[mainKey].list(4) != [i[mainKey].unrank(4, j) for j in range(i[mainKey].count(4))]:
+        if i[mainKey].list(8) != [i[mainKey].unrank(8, j) for j in range(i[mainKey].count(8))]:
             return False
     return True
 
