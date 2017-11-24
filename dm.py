@@ -308,13 +308,14 @@ def verif_grammar(gram):
                 return False
     return True
 
-
+# checks if obj is empty or not
 def vide(obj):
     if obj:
         return False
     else:
         return True
 
+# checks if obj starts with the string f or not
 def begins_with(obj, f):
     l = len(f)
     return obj[0:l]==f
@@ -323,7 +324,7 @@ def first(obj):
     return obj[0], obj[1:]
     
 def last(obj):
-    return obj[-1], obj[:-1]
+    return obj[:-1], obj[-1]
 
 # String concatenation function taking two arguments (unlike "".join, which
 # takes a sequence
@@ -341,21 +342,18 @@ fiboGram = { "Vide"   : EpsilonRule(""),
              "CasBAu" : ProductRule("AtomB", "CasAu", conc, first)
            }
 init_grammar(fiboGram)
-print(fiboGram["Fib"].weight("ABABABA"))
-#print(calc_valuation(fiboGram))
+
 
 # Grammaire des mots sur l'alphabet (A,B)
 motGram = { "Vide" : EpsilonRule(""),
            "Mot"   : UnionRule("Vide", "Cas1", vide),
            "Cas1"  : UnionRule("Au", "Bu", lambda x: begins_with(x, 'A')),
            "Au"    : ProductRule("AtomA", "Mot", conc , first),
-           "Bu"    : ProductRule("AtomB", "Mot", lambda x, y:  x + y , first),
+           "Bu"    : ProductRule("AtomB", "Mot", conc , first),
            "AtomA" : SingletonRule("A"),
            "AtomB" : SingletonRule("B")
 }
 init_grammar(motGram)
-print(motGram["Mot"].rank("ABABAA"))
-#print(calc_valuation(motGram))
 
 def before_rightP(obj):
     lc = 0
@@ -367,6 +365,7 @@ def before_rightP(obj):
             rc += 1
         if rc == lc:
             return obj[:lc+rc-1], obj[lc+rc-1:]
+            
 # Grammaire des mots de Dyck
 dyckGram = {
     "Vide"  : EpsilonRule(""),
@@ -377,53 +376,7 @@ dyckGram = {
     "Atom(" : SingletonRule("("),
     "Atom)" : SingletonRule(")")
 }     
-
-"""
-dyckGram = {
-    "Vide"  : EpsilonRule(""),
-    "Dyck"  : UnionRule("Vide", "Cas1"),
-    "Cas1"  : UnionRule("(u)", "uv"),
-    "(u)"   : ProductRule("Atom(", "Cas2", conc ),
-    "Cas2"  : ProductRule("Dyck", "Atom)", conc ),
-    "Atom(" : SingletonRule("("),
-    "Atom)" : SingletonRule(")"),
-    "uv"    : ProductRule("Cas1", "Cas1", conc ),
-}
-"""
-"""
-dyckGram = {
-    "Vide"    : EpsilonRule(""),
-    "Dyck"    : UnionRule("Vide", "dp-d", vide),
-    "dp-d"    : ProductRule("DyckPrm", "Dyck", conc ),
-    "DyckPrm" : UnionRule("(dp)", "()"),
-    "()"      : ProductRule("Atom(", "Atom)", conc ),
-    "Atom("   : SingletonRule("("),
-    "Atom)"   : SingletonRule(")"),
-    "(dp)"    : ProductRule("Atom(", "dp)", conc ),
-    "dp)"     : ProductRule("DyckPrm", "Atom)", conc )
-}
-"""
-"""
-dyckGram = {
-    "Vide"  : EpsilonRule(""),
-    "Atom(" : SingletonRule("("),
-    "Atom)" : SingletonRule(")"),
-    "Dyck" : UnionRule("Vide", "Cas1"),
-    "Cas1" : UnionRule("(R", "L)"),
-    "(R"   : ProductRule("Atom(", "R", conc),
-    "R"    : UnionRule("Dyck)", "(RR"),
-    "L"    : UnionRule("(Dyck", "LL)"),
-    "Dyck)" : ProductRule("Dyck", "Atom)", conc),
-    "(Dyck" : ProductRule("Atom(", "Dyck", conc),
-    "L)"   : ProductRule("L", "Atom)", conc),
-    "(RR" : ProductRule("(R", "R", conc),
-    "LL)" : ProductRule("L", "L)", conc)
-}
-"""
 init_grammar(dyckGram)
-print(dyckGram["Dyck"].weight("()((()))"))
-print(dyckGram["Dyck"].rank("()((()))"))
-#print(calc_valuation(dyckGram))
 
 def unique(obj, f):
     l = len(obj)
@@ -445,17 +398,12 @@ non_tripleGram = {
     "AAu"    : ProductRule("AtomA", "Au", conc , first),
     "restB"  : UnionRule("Vide", "CasB", vide),
     "CasB"   : UnionRule("Bu", "BBu", lambda x: unique(x, 'B')),
-    "Bu"     : ProductRule("AtomB", "restA", lambda x, y:  x + y , first),
-    "BBu"    : ProductRule("AtomB", "Bu", lambda x, y:  x + y , first),
+    "Bu"     : ProductRule("AtomB", "restA", conc , first),
+    "BBu"    : ProductRule("AtomB", "Bu", conc , first),
     "restA"  : UnionRule("Vide", "CasA", vide),
     "CasA"   : UnionRule("Au", "AAu", lambda x: unique(x, 'A'))
 }
-
 init_grammar(non_tripleGram)
-print(non_tripleGram["Non_Triple"].weight("ABABABA"))
-#print(calc_valuation(non_tripleGram))
-
-
 
 def XuX(obj, X):
     l = len(obj)
@@ -463,6 +411,7 @@ def XuX(obj, X):
         return False
     else:
         return obj[0]==X    
+        
 # Grammaire des palindromes sur A, B
 palindromeGram = {
     "Vide"   : EpsilonRule(""),
@@ -470,17 +419,14 @@ palindromeGram = {
     "Cas1"   : UnionRule("AuA", "Cas2", lambda x: XuX(x, 'A')),
     "Cas2"   : UnionRule("BuB", "Cas3", lambda x: XuX(x, 'B')),
     "Cas3"   : UnionRule("AtomA", "AtomB", lambda x: begins_with(x, 'A')),
-    "AuA"    : ProductRule("AtomA", "uA", lambda x, y:  x + y , first),
+    "AuA"    : ProductRule("Au", "AtomA", conc , last),
     "AtomA"  : SingletonRule("A"),
-    "uA"     : ProductRule("AtomA", "Pal", lambda x, y:  y + x , last),  # Pour unrank, on a besoin d'avoir une valuation non nulle en 1er
-    "BuB"    : ProductRule("AtomB", "uB", lambda x, y:  x + y , first),
+    "Au"     : ProductRule("AtomA", "Pal", conc , first),
+    "BuB"    : ProductRule("Bu", "AtomB", conc , last),
     "AtomB"  : SingletonRule("B"),
-    "uB"     : ProductRule("AtomB", "Pal", lambda x, y:  y + x , last)
+    "Bu"     : ProductRule("AtomB", "Pal", conc , first)
 }
-
 init_grammar(palindromeGram)
-print(palindromeGram["Pal"].weight("BAB"))
-#print(calc_valuation(palindromeGram))
 
 # Grammaire des palindromes sur A, B et C
 palindrome2Gram = {
@@ -491,65 +437,51 @@ palindrome2Gram = {
     "Cas3"   : UnionRule("CuC", "Cas4", lambda x: XuX(x, 'C')),
     "Cas4"   : UnionRule("AtomA", "Cas5", lambda x: begins_with(x, 'A')),
     "Cas5"   : UnionRule("AtomB", "AtomC", lambda x: begins_with(x, 'B')),
-    "AuA"    : ProductRule("AtomA", "uA", conc, first ),
+    "AuA"    : ProductRule("Au", "AtomA", conc, last),
     "AtomA"  : SingletonRule("A"),
-    "uA"     : ProductRule("AtomA", "Pal", lambda x, y: y + x , last),
-    "BuB"    : ProductRule("AtomB", "uB", lambda x, y:  x + y , first),
+    "Au"     : ProductRule("AtomA", "Pal", conc , first),
+    "BuB"    : ProductRule("Bu", "AtomB", conc , last),
     "AtomB"  : SingletonRule("B"),
-    "uB"     : ProductRule("AtomB", "Pal", lambda x, y:  y + x , last),
-    "CuC"    : ProductRule("AtomC", "uC", lambda x, y:  x + y , first),
+    "Bu"     : ProductRule("AtomB", "Pal", conc , first),
+    "CuC"    : ProductRule("Cu", "AtomC", conc , last),
     "AtomC"  : SingletonRule("C"),
-    "uC"     : ProductRule("AtomC", "Pal", lambda x, y:  y + x , last)
+    "Cu"     : ProductRule("AtomC", "Pal", conc , first)
 }
-
 init_grammar(palindrome2Gram)
-#print(calc_valuation(palindrome2Gram))
+
+
+
+def split(obj, f):
+    cf=0
+    co=0
+    for i in obj:
+        if i==f:
+            cf += 1
+        else:
+            co += 1
+        if cf == co:
+            return obj[:cf+co], obj[cf+co:]
+
 
 # Grammaire sur les mots avec autant de lettres de chaque
-"""
-lettreGram = {
-    "Vide"     : EpsilonRule(""),
-    "AtomA"    : SingletonRule("A"),
-    "AtomB"    : SingletonRule("B"),
-    "Lettres"  : UnionRule("Vide", "Cas1"),
-    "Cas1"     : UnionRule("ABu", "Cas2"),
-    "Cas2"     : UnionRule("BAu", "Cas3"),
-    "Cas3"     : UnionRule("AuB", "BuA"),
-#    "Cas4"     : UnionRule("BuA", "Cas5"),
-#    "Cas5"     : UnionRule("uAB", "uBA"),
-    "ABu"      : ProductRule("AtomA", "Bu", conc ),
-    "Bu"       : ProductRule("AtomB", "Lettres", conc),
-    "BAu"      : ProductRule("AtomB", "Au", conc),
-    "Au"       : ProductRule("AtomA", "Lettres", conc),
-    "AuB"      : ProductRule("Au", "AtomB", conc),
-    "BuA"      : ProductRule("Bu", "AtomA", conc),
-#    "uAB"      : ProductRule("uA", "AtomB", conc),
-    "uA"       : ProductRule("Lettres", "AtomA", conc ),
- #   "uBA"      : ProductRule("uB", "AtomA", conc ),
-    "uB"       : ProductRule("Lettres", "AtomB", conc )
-}
-"""
 lettreGram = {
 	"Vide"    : EpsilonRule(""),
 	"AtomA"   : SingletonRule("A"),
 	"AtomB"   : SingletonRule("B"),
 	"Lettres" : UnionRule("Vide", "Cas1", vide),
-        "Cas1"    : UnionRule("Ab", "Ba", lambda x: begins_with(x, 'A')),
+    "Cas1"    : UnionRule("Ab", "Ba", lambda x: begins_with(x, 'A')),
 	"Ab"      : ProductRule("AtomA", "b", conc, first),
 	"Ba"      : ProductRule("AtomB", "a", conc, first),
-        "a"       : UnionRule("Au", "Baa", lambda x: begins_with(x, 'A')),
+    "a"       : UnionRule("Au", "Baa", lambda x: begins_with(x, 'A')),
 	"Au"      : ProductRule("AtomA", "Lettres", conc, first),
-	"Baa"     : ProductRule("Ba", "a", conc, None),
-        "b"       : UnionRule("Bu", "Abb", conc),
+	"Baa"     : ProductRule("Ba", "a", conc, lambda x: split(x, 'A')),
+    "b"       : UnionRule("Bu", "Abb", lambda x: begins_with(x, 'B')),
 	"Bu"      : ProductRule("AtomB", "Lettres", conc , first),
-	"Abb"     : ProductRule("Ab", "b", conc, None)
+	"Abb"     : ProductRule("Ab", "b", conc, lambda x: split(x, 'B'))
 }
 init_grammar(lettreGram)
-#print(calc_valuation(lettreGram))
-print("totooooo")
-l = lettreGram["Lettres"]
-print(l.count(6))
 
+# Grammaire sur les arbres binaires
 treeGram = {
     "Leaf" : SingletonRule(()),
     "Node" : ProductRule("Tree", "Tree", lambda x, y: (x,y), lambda x: x ),
@@ -557,18 +489,8 @@ treeGram = {
     "BoundTree" : BoundRule("Tree", 2, 9),
     "Test" : ProductRule("Tree", "BoundTree", lambda x, y: (x,y), lambda x: x)
 }
-
 init_grammar(treeGram)
-print(treeGram["Tree"].weight((((),()),())))
-g = treeGram["Test"]
-print(g.unrank(12, 2))
 
-"""
-print(calc_valuation(treeGram))
-print(treeGram["Tree"].count(3))
-print(treeGram["Tree"].list(3))
-print(treeGram["Tree"].unrank(6,12))
-print(treeGram["Tree"].random(3))"""
 
 ###########################################
 ##  Tests sur les grammaires
@@ -612,7 +534,6 @@ def rank_test():
         if r != [k for k in range(len(l))]:
             print(l)
             print(mainKey)
-            print(r)
             return False
     return True
 
